@@ -16,6 +16,7 @@
       --card: #1a1a2e;
       --text: #ffffff;
       --accent: #00d4ff;
+      --border: rgba(0, 255, 136, 0.4);
     }
 
     @media (prefers-color-scheme: light) {
@@ -23,6 +24,7 @@
         --bg: #f8f9fa;
         --card: #ffffff;
         --text: #212529;
+        --border: rgba(0, 255, 136, 0.6);
       }
     }
 
@@ -42,12 +44,12 @@
       border-radius: 24px;
       padding: 28px;
       box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-      border: 1px solid rgba(0,255,136,0.2);
+      border: 1px solid var(--border);
       margin-bottom: 20px;
     }
 
     h1 { font-size: 28px; text-align: center; margin-bottom: 8px; color: var(--primary); }
-    .subtitle { text-align: center; opacity: 0.8; margin-bottom: 24px; }
+    .subtitle { text-align: center; opacity: 0.8; margin-bottom: 24px; font-size: 15px; }
 
     .tabs {
       display: flex;
@@ -55,6 +57,7 @@
       border-radius: 16px;
       padding: 6px;
       margin-bottom: 20px;
+      gap: 8px;
     }
 
     .tab {
@@ -65,6 +68,7 @@
       cursor: pointer;
       transition: all 0.3s;
       font-weight: 600;
+      font-size: 15px;
     }
 
     .tab.active {
@@ -72,16 +76,19 @@
       color: #000;
     }
 
-    input, select, textarea {
+    select, input, textarea {
       width: 100%;
       padding: 16px;
-      border: 2px solid rgba(0,255,136,0.3);
+      border: 2px solid var(--border);
       border-radius: 16px;
       background: rgba(0,0,0,0.1);
       color: var(--text);
       font-size: 16px;
       margin-bottom: 16px;
+      outline: none;
     }
+
+    select { cursor: pointer; }
 
     input::placeholder, textarea::placeholder { color: rgba(255,255,255,0.6); }
 
@@ -96,17 +103,19 @@
       width: 100%;
       font-size: 16px;
       transition: all 0.2s;
+      box-shadow: 0 4px 15px rgba(0,255,136,0.3);
     }
 
-    button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,255,136,0.4); }
+    button:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,255,136,0.5); }
 
     #qrcode {
       text-align: center;
-      margin: 20px 0;
+      margin: 24px 0;
       padding: 20px;
       background: white;
       border-radius: 16px;
       display: none;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
 
     #qrcode img { max-width: 100%; border-radius: 12px; }
@@ -127,6 +136,7 @@
       max-width: 400px;
       border-radius: 16px;
       margin: 16px 0;
+      border: 2px solid var(--border);
     }
 
     .result {
@@ -135,6 +145,7 @@
       border-radius: 16px;
       margin-top: 16px;
       border-left: 4px solid var(--primary);
+      font-size: 15px;
       display: none;
     }
 
@@ -148,6 +159,8 @@
     @media (max-width: 480px) {
       .card { padding: 20px; }
       h1 { font-size: 24px; }
+      .tabs { flex-direction: column; }
+      .tab { margin-bottom: 8px; }
     }
   </style>
 </head>
@@ -172,16 +185,16 @@
         </select>
 
         <div id="text-fields">
-          <textarea id="text-input" placeholder="Ketik teks di sini..." rows="3"></textarea>
+          <textarea id="text-input" placeholder="Ketik teks atau URL di sini..." rows="3"></textarea>
         </div>
 
         <div id="wifi-fields" style="display:none;">
           <input type="text" id="wifi-ssid" placeholder="Nama WiFi (SSID)">
-          <input type="text" id="wifi-pass" placeholder="Password WiFi">
+          <input type="text" id="wifi-pass" placeholder="Password WiFi (kosongkan jika open)">
           <select id="wifi-type">
             <option value="WPA">WPA/WPA2</option>
             <option value="WEP">WEP</option>
-            <option value="">Tanpa Password</option>
+            <option value="">Tanpa Enkripsi</option>
           </select>
         </div>
 
@@ -223,9 +236,16 @@
 
     function updateFields() {
       const type = document.getElementById('type').value;
-      document.getElementById('text-fields').style.display = type === 'text' || type === 'url' ? 'block' : 'none';
+      document.getElementById('text-fields').style.display = 
+        (type === 'text' || type === 'url') ? 'block' : 'none';
       document.getElementById('wifi-fields').style.display = type === 'wifi' ? 'block' : 'none';
       document.getElementById('whatsapp-fields').style.display = type === 'whatsapp' ? 'block' : 'none';
+      
+      if (type === 'url') {
+        document.getElementById('text-input').placeholder = "Masukkan URL (contoh: https://rifqydev.my.id)";
+      } else {
+        document.getElementById('text-input').placeholder = "Ketik teks di sini...";
+      }
     }
 
     function generateQR() {
@@ -234,44 +254,48 @@
 
       if (type === 'text' || type === 'url') {
         text = document.getElementById('text-input').value.trim();
-      } else if (type === 'wifi') {
+        if (!text) return alert('Isi teks atau URL dulu!');
+      } 
+      else if (type === 'wifi') {
         const ssid = document.getElementById('wifi-ssid').value.trim();
         const pass = document.getElementById('wifi-pass').value;
         const enc = document.getElementById('wifi-type').value;
         if (!ssid) return alert('SSID wajib diisi!');
         text = `WIFI:T:${enc};S:${ssid};P:${pass};;`;
-      } else if (type === 'whatsapp') {
+      } 
+      else if (type === 'whatsapp') {
         const num = document.getElementById('wa-number').value.trim().replace(/[^0-9]/g, '');
         const msg = encodeURIComponent(document.getElementById('wa-message').value.trim());
         if (!num) return alert('Nomor WA wajib diisi!');
+        if (!num.startsWith('62') && !num.startsWith('0')) return alert('Nomor harus diawali 62 atau 0');
         text = `https://wa.me/${num}${msg ? '?text=' + msg : ''}`;
       }
 
-      if (!text) return alert('Isi data dulu!');
+      // Clear & show QR
+      const qrDiv = document.getElementById('qrcode');
+      qrDiv.innerHTML = '';
+      qrDiv.style.display = 'block';
 
-      document.getElementById('qrcode').innerHTML = '';
-      document.getElementById('qrcode').style.display = 'block';
-
-      new QRCode(document.getElementById('qrcode'), {
+      new QRCode(qrDiv, {
         text: text,
         width: 256,
         height: 256,
         colorDark: "#000000",
-        colorLight: "#ffffff"
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
       });
 
       setTimeout(() => {
         document.getElementById('download-btn').style.display = 'block';
-      }, 500);
+      }, 300);
     }
 
-    let qrCanvas;
     function downloadQR() {
       const canvas = document.querySelector('#qrcode canvas');
       const url = canvas.toDataURL('image/png');
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'RifqyQR.png';
+      a.download = `RifqyQR_${Date.now()}.png`;
       a.click();
     }
 
@@ -286,7 +310,10 @@
           video.play();
           scanQR();
         })
-        .catch(() => alert('Izinkan akses kamera!'));
+        .catch(err => {
+          alert('Izinkan akses kamera untuk scan QR!');
+          console.error(err);
+        });
     }
 
     function scanQR() {
@@ -302,10 +329,12 @@
           const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
           const code = jsQR(imageData.data, imageData.width, imageData.height);
           if (code) {
-            document.getElementById('scan-result').innerHTML = `
-              <strong>Hasil:</strong> <a href="${code.data}" target="_blank">${code.data}</a>
+            const result = document.getElementById('scan-result');
+            result.innerHTML = `
+              <strong>Hasil:</strong><br>
+              <a href="${code.data}" target="_blank" style="color:var(--primary); word-break:break-all;">${code.data}</a>
             `;
-            document.getElementById('scan-result').style.display = 'block';
+            result.style.display = 'block';
             stopScanner();
             return;
           }
@@ -326,4 +355,4 @@
     updateFields();
   </script>
 </body>
-</html>
+  </html>
