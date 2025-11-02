@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RifqyQR</title>
+  <meta name="description" content="QR Generator & Scanner – WiFi, Link, WA, Text – Neon Theme">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.png" type="image/png">
+  <meta name="theme-color" content="#00ff88">
+
+  <style>
+    :root {
+      --primary: #00ff88;
+      --bg: #0f0f1e;
+      --card: #1a1a2e;
+      --text: #ffffff;
+      --accent: #00d4ff;
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f8f9fa;
+        --card: #ffffff;
+        --text: #212529;
+      }
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px;
+      transition: all 0.3s;
+    }
+
+    .container { max-width: 500px; margin: 0 auto; }
+    .card {
+      background: var(--card);
+      border-radius: 24px;
+      padding: 28px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      border: 1px solid rgba(0,255,136,0.2);
+      margin-bottom: 20px;
+    }
+
+    h1 { font-size: 28px; text-align: center; margin-bottom: 8px; color: var(--primary); }
+    .subtitle { text-align: center; opacity: 0.8; margin-bottom: 24px; }
+
+    .tabs {
+      display: flex;
+      background: rgba(0,0,0,0.2);
+      border-radius: 16px;
+      padding: 6px;
+      margin-bottom: 20px;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 12px;
+      text-align: center;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-weight: 600;
+    }
+
+    .tab.active {
+      background: var(--primary);
+      color: #000;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 16px;
+      border: 2px solid rgba(0,255,136,0.3);
+      border-radius: 16px;
+      background: rgba(0,0,0,0.1);
+      color: var(--text);
+      font-size: 16px;
+      margin-bottom: 16px;
+    }
+
+    input::placeholder, textarea::placeholder { color: rgba(255,255,255,0.6); }
+
+    button {
+      background: var(--primary);
+      color: #000;
+      border: none;
+      padding: 16px;
+      border-radius: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      font-size: 16px;
+      transition: all 0.2s;
+    }
+
+    button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,255,136,0.4); }
+
+    #qrcode {
+      text-align: center;
+      margin: 20px 0;
+      padding: 20px;
+      background: white;
+      border-radius: 16px;
+      display: none;
+    }
+
+    #qrcode img { max-width: 100%; border-radius: 12px; }
+
+    .download-btn {
+      background: var(--accent);
+      margin-top: 12px;
+      display: none;
+    }
+
+    #scanner {
+      display: none;
+      text-align: center;
+    }
+
+    #scanner video {
+      width: 100%;
+      max-width: 400px;
+      border-radius: 16px;
+      margin: 16px 0;
+    }
+
+    .result {
+      background: rgba(0,255,136,0.15);
+      padding: 16px;
+      border-radius: 16px;
+      margin-top: 16px;
+      border-left: 4px solid var(--primary);
+      display: none;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 32px;
+      font-size: 13px;
+      opacity: 0.7;
+    }
+
+    @media (max-width: 480px) {
+      .card { padding: 20px; }
+      h1 { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>RifqyQR</h1>
+      <p class="subtitle">Buat & Scan QR Code – WiFi, Link, WA, Text</p>
+
+      <div class="tabs">
+        <div class="tab active" onclick="showTab('generator')">Buat QR</div>
+        <div class="tab" onclick="showTab('scanner')">Scan QR</div>
+      </div>
+
+      <!-- GENERATOR -->
+      <div id="generator">
+        <select id="type" onchange="updateFields()">
+          <option value="text">Teks Bebas</option>
+          <option value="url">Link / URL</option>
+          <option value="wifi">WiFi</option>
+          <option value="whatsapp">WhatsApp</option>
+        </select>
+
+        <div id="text-fields">
+          <textarea id="text-input" placeholder="Ketik teks di sini..." rows="3"></textarea>
+        </div>
+
+        <div id="wifi-fields" style="display:none;">
+          <input type="text" id="wifi-ssid" placeholder="Nama WiFi (SSID)">
+          <input type="text" id="wifi-pass" placeholder="Password WiFi">
+          <select id="wifi-type">
+            <option value="WPA">WPA/WPA2</option>
+            <option value="WEP">WEP</option>
+            <option value="">Tanpa Password</option>
+          </select>
+        </div>
+
+        <div id="whatsapp-fields" style="display:none;">
+          <input type="text" id="wa-number" placeholder="Nomor WA (628...)">
+          <textarea id="wa-message" placeholder="Pesan (opsional)" rows="2"></textarea>
+        </div>
+
+        <button onclick="generateQR()">Buat QR Code</button>
+
+        <div id="qrcode"></div>
+        <button class="download-btn" id="download-btn" onclick="downloadQR()">Download PNG</button>
+      </div>
+
+      <!-- SCANNER -->
+      <div id="scanner">
+        <video id="video" autoplay playsinline></video>
+        <button onclick="startScanner()">Mulai Scan</button>
+        <div id="scan-result" class="result"></div>
+      </div>
+    </div>
+
+    <footer>© 2025 Rifqy Aditya | Open Source</footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+
+  <script>
+    function showTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(t => {
+        if (t.textContent.includes(tab === 'generator' ? 'Buat' : 'Scan')) t.classList.add('active');
+      });
+      document.getElementById('generator').style.display = tab === 'generator' ? 'block' : 'none';
+      document.getElementById('scanner').style.display = tab === 'scanner' ? 'block' : 'none';
+      if (tab === 'scanner') startScanner();
+    }
+
+    function updateFields() {
+      const type = document.getElementById('type').value;
+      document.getElementById('text-fields').style.display = type === 'text' || type === 'url' ? 'block' : 'none';
+      document.getElementById('wifi-fields').style.display = type === 'wifi' ? 'block' : 'none';
+      document.getElementById('whatsapp-fields').style.display = type === 'whatsapp' ? 'block' : 'none';
+    }
+
+    function generateQR() {
+      const type = document.getElementById('type').value;
+      let text = '';
+
+      if (type === 'text' || type === 'url') {
+        text = document.getElementById('text-input').value.trim();
+      } else if (type === 'wifi') {
+        const ssid = document.getElementById('wifi-ssid').value.trim();
+        const pass = document.getElementById('wifi-pass').value;
+        const enc = document.getElementById('wifi-type').value;
+        if (!ssid) return alert('SSID wajib diisi!');
+        text = `WIFI:T:${enc};S:${ssid};P:${pass};;`;
+      } else if (type === 'whatsapp') {
+        const num = document.getElementById('wa-number').value.trim().replace(/[^0-9]/g, '');
+        const msg = encodeURIComponent(document.getElementById('wa-message').value.trim());
+        if (!num) return alert('Nomor WA wajib diisi!');
+        text = `https://wa.me/${num}${msg ? '?text=' + msg : ''}`;
+      }
+
+      if (!text) return alert('Isi data dulu!');
+
+      document.getElementById('qrcode').innerHTML = '';
+      document.getElementById('qrcode').style.display = 'block';
+
+      new QRCode(document.getElementById('qrcode'), {
+        text: text,
+        width: 256,
+        height: 256,
+        colorDark: "#000000",
+        colorLight: "#ffffff"
+      });
+
+      setTimeout(() => {
+        document.getElementById('download-btn').style.display = 'block';
+      }, 500);
+    }
+
+    let qrCanvas;
+    function downloadQR() {
+      const canvas = document.querySelector('#qrcode canvas');
+      const url = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'RifqyQR.png';
+      a.click();
+    }
+
+    let videoStream;
+    function startScanner() {
+      if (videoStream) return;
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+        .then(stream => {
+          videoStream = stream;
+          const video = document.getElementById('video');
+          video.srcObject = stream;
+          video.play();
+          scanQR();
+        })
+        .catch(() => alert('Izinkan akses kamera!'));
+    }
+
+    function scanQR() {
+      const video = document.getElementById('video');
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      const scan = () => {
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const code = jsQR(imageData.data, imageData.width, imageData.height);
+          if (code) {
+            document.getElementById('scan-result').innerHTML = `
+              <strong>Hasil:</strong> <a href="${code.data}" target="_blank">${code.data}</a>
+            `;
+            document.getElementById('scan-result').style.display = 'block';
+            stopScanner();
+            return;
+          }
+        }
+        requestAnimationFrame(scan);
+      };
+      scan();
+    }
+
+    function stopScanner() {
+      if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+        videoStream = null;
+      }
+    }
+
+    // Init
+    updateFields();
+  </script>
+</body>
+</html>
